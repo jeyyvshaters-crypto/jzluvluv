@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Birthday Surprise - Kartu Ulang Tahun Digital</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Nunito:wght@400;600;700;800&family=Pacifico&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- html2canvas for image export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'theme-pink-bg': '#FFF0F5',
+                        'theme-pink-card': '#FFD1DC',
+                        'theme-blue-bg': '#E6F3FF',
+                        'theme-purple-bg': '#F3E8FF',
+                        'theme-peach-bg': '#FFF3E0',
+                        'theme-dark-bg': '#1A1A2E',
+                    },
+                    fontFamily: {
+                        handwriting: ['Dancing Script', 'cursive'],
+                        cute: ['Pacifico', 'cursive'],
+                        sans: ['Nunito', 'sans-serif'],
+                    },
+                    keyframes: {
+                        pulseSlow: {
+                            '0%, 100%': { transform: 'scale(1)' },
+                            '50%': { transform: 'scale(1.06)' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px) rotate(0deg)' },
+                            '50%': { transform: 'translateY(-12px) rotate(3deg)' },
+                        },
+                        lidOpen: {
+                            '0%': { transform: 'translateY(0) rotate(0)' },
+                            '100%': { transform: 'translateY(-60px) rotate(-15deg)' }
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulseSlow 2.5s infinite ease-in-out',
+                        'float': 'float 4s infinite ease-in-out',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            overflow-x: hidden;
+            touch-action: manipulation;
+        }
+
+        /* Envelope Styles */
+        .envelope-wrapper {
+            perspective: 1000px;
+        }
+        
+        .envelope {
+            position: relative;
+            width: 300px;
+            height: 200px;
+            background: #ff758c;
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
+            box-shadow: 0 15px 35px rgba(255, 117, 140, 0.3);
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        @media (min-width: 640px) {
+            .envelope {
+                width: 380px;
+                height: 250px;
+            }
+        }
+
+        .envelope:hover {
+            transform: translateY(-5px);
+        }
+
+        .envelope .flap {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0;
+            height: 0;
+            border-left: 150px solid transparent;
+            border-right: 150px solid transparent;
+            border-top: 110px solid #ff5277;
+            transform-origin: top;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), z-index 0.2s;
+            z-index: 4;
+        }
+
+        @media (min-width: 640px) {
+            .envelope .flap {
+                border-left-width: 190px;
+                border-right-width: 190px;
+                border-top-width: 135px;
+            }
+        }
+
+        .envelope.open .flap {
+            transform: rotateX(180deg);
+            z-index: 1;
+        }
+
+        .envelope .pocket {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 0;
+            border-left: 150px solid #ff8fa3;
+            border-right: 150px solid #ff8fa3;
+            border-bottom: 110px solid #ff758c;
+            border-top: 90px solid transparent;
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
+            z-index: 3;
+        }
+
+        @media (min-width: 640px) {
+            .envelope .pocket {
+                border-left-width: 190px;
+                border-right-width: 190px;
+                border-bottom-width: 140px;
+                border-top-width: 110px;
+            }
+        }
+
+        .envelope .letter {
+            position: absolute;
+            bottom: 10px;
+            left: 5%;
+            width: 90%;
+            height: 90%;
+            background: #ffffff;
+            border-radius: 12px;
+            transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), z-index 0.4s;
+            z-index: 2;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            padding: 15px;
+            overflow: hidden;
+        }
+
+        .envelope.open .letter.extracted {
+            transform: translateY(-120px) scale(1.05);
+            z-index: 5;
+        }
+
+        /* Custom Scrollbar for Letter Modal */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.05);
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #ff758c;
+            border-radius: 10px;
+        }
+
+        /* Floating background items */
+        .bg-particle {
+            position: absolute;
+            pointer-events: none;
+            user-select: none;
+            animation: float 6s infinite ease-in-out;
+        }
+
+        /* Gift Box Lid Animation */
+        .gift-box-lid {
+            transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            transform-origin: top left;
+        }
+        .gift-opened .gift-box-lid {
+            transform: translateY(-40px) rotate(-20deg);
+        }
+    </style>
+</head>
+<body class="bg-pink-50 text-gray-800 min-h-screen flex flex-col justify-between relative selection:bg-pink-200 selection:text-pink-800 transition-colors duration-500" id="mainBody">
+
+    <!-- Floating Background Particles (Stars, Hearts, Flowers) -->
+    <div id="bgParticlesContainer" class="fixed inset-0 pointer-events-none overflow-hidden z-0"></div>
+
+    <!-- Top Floating Controls -->
+    <div class="fixed top-4 right-4 z-40 flex items-center gap-2">
+        <!-- Audio Control Button -->
+        <button id="musicToggleBtn" onclick="toggleMusic()" class="bg-white/80 backdrop-blur-md hover:bg-white text-pink-600 p-3 rounded-full shadow-lg transition-all hover:scale-110 active:scale-95 flex items-center justify-center w-12 h-12" title="Play/Pause Music">
+            <i class="fas fa-music text-lg" id="musicIcon"></i>
+        </button>
+        <!-- Editor Button -->
+        <button onclick="toggleEditorModal()" class="bg-gradient-to-r from-pink-500 to-rose-500 text-white px-4 py-3 rounded-full shadow-lg font-bold text-sm hover:opacity-90 transition-all hover:scale-105 active:scale-95 flex items-center gap-2">
+            <i class="fas fa-pen-magic"></i>
+            <span class="hidden sm:inline">Edit Kartu</span>
+        </button>
+    </div>
+
+    <!-- MAIN CONTAINER -->
+    <main class="flex-grow flex items-center justify-center p-4 relative z-10 my-auto">
+
+        <!-- STEP 1: LANDING SCREEN -->
+        <section id="landingScreen" class="text-center max-w-lg mx-auto py-8 px-4 flex flex-col items-center">
+            <div class="inline-block bg-white/70 backdrop-blur-sm px-4 py-1.5 rounded-full text-pink-600 font-bold text-sm mb-4 shadow-sm animate-bounce">
+                ✨ Special Day Surprise ✨
+            </div>
+            <h1 id="landingTitle" class="font-cute text-3xl sm:text-5xl text-pink-600 mb-6 leading-relaxed drop-shadow-sm">
+                You Have a Birthday Surprise!
+            </h1>
+            <p class="text-gray-600 mb-8 text-base sm:text-lg max-w-md">
+                Ada sebuah surat manis dan kejutan spesial yang sedang menunggumu. Tekan tombol di bawah untuk membukanya!
+            </p>
+            
+            <button onclick="goToEnvelopeScreen()" class="bg-gradient-to-r from-pink-500 via-rose-500 to-purple-500 text-white font-extrabold text-lg sm:text-xl px-8 py-4 rounded-full shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1 active:translate-y-0 animate-pulse-slow flex items-center gap-3 group">
+                <span>Open Your Surprise</span>
+                <i class="fas fa-heart group-hover:scale-125 transition-transform text-pink-200"></i>
+            </button>
+        </section>
+
+        <!-- STEP 2: ENVELOPE INTERACTIVE SCREEN -->
+        <section id="envelopeScreen" class="hidden flex-col items-center justify-center max-w-xl mx-auto py-6 w-full">
+            <div class="text-center mb-6">
+                <span class="text-pink-500 font-bold text-sm tracking-wider uppercase bg-pink-100 px-3 py-1 rounded-full">Langkah 1 dari 2</span>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-800 mt-2">Buka Amplop Spesialmu</h2>
+                <p class="text-sm text-gray-500 mt-1">Ketuk amplop atau tombol di bawah untuk melihat isinya</p>
+            </div>
+
+            <!-- Envelope Component -->
+            <div class="envelope-wrapper my-8">
+                <div class="envelope shadow-2xl" id="envelopeObj" onclick="openEnvelope()">
+                    <div class="flap" id="flapObj"></div>
+                    <div class="pocket"></div>
+                    <div class="letter text-center flex flex-col items-center justify-center" id="miniLetterObj">
+                        <i class="fas fa-heart text-pink-500 text-3xl mb-2 animate-bounce"></i>
+                        <p class="font-handwriting text-pink-700 text-xl font-bold" id="miniLetterTitle">For My Girl 💕</p>
+                        <p class="text-xs text-gray-400 mt-1">Tap to read full letter</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Button for Envelope -->
+            <button id="tapOpenBtn" onclick="openEnvelope()" class="mt-4 bg-white hover:bg-pink-50 text-pink-600 font-extrabold px-6 py-3 rounded-full border-2 border-pink-300 shadow-md hover:shadow-lg transition-all flex items-center gap-2 active:scale-95">
+                <i class="fas fa-hand-pointer text-pink-500"></i>
+                <span>Tap to Open</span>
+            </button>
+        </section>
+
+        <!-- STEP 3: FULL LETTER & SURPRISE DASHBOARD -->
+        <section id="letterScreen" class="hidden flex-col items-center max-w-2xl w-full mx-auto py-4">
+            
+            <!-- Main Birthday Card Presentation -->
+            <div id="birthdayCard" class="bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl border-4 border-pink-200 p-6 sm:p-10 w-full relative overflow-hidden transition-all duration-300 transform">
+                <!-- Ribbon Corner Decoration -->
+                <div class="absolute -top-10 -right-10 bg-pink-400 text-white w-28 h-28 rotate-45 flex items-end justify-center pb-2 shadow-md">
+                    <i class="fas fa-gift text-xl mb-1"></i>
+                </div>
+
+                <!-- Card Header -->
+                <div class="text-center mb-6">
+                    <span class="text-3xl sm:text-4xl">🎉🎂✨</span>
+                    <h2 id="cardHeader" class="font-cute text-2xl sm:text-4xl text-pink-600 font-bold mt-2 leading-snug">
+                        Happy Birthday, GEJAAN MY CEWE AKUUU!
+                    </h2>
+                    <div class="w-24 h-1 bg-gradient-to-r from-pink-300 via-rose-400 to-purple-300 mx-auto rounded-full mt-3"></div>
+                </div>
+
+                <!-- Typewriter Letter Body -->
+                <div class="bg-pink-50/60 rounded-2xl p-5 sm:p-7 border border-pink-100 min-h-[160px] flex items-center">
+                    <p id="cardMessage" class="font-handwriting text-xl sm:text-2xl text-gray-800 leading-relaxed tracking-wide w-full text-left sm:text-center whitespace-pre-line">
+                        <!-- Typed dynamically via JS -->
+                    </p>
+                </div>
+
+                <!-- Card Footer / Sender Signature -->
+                <div class="mt-6 text-right">
+                    <p class="text-xs text-gray-400 uppercase tracking-widest font-bold">With Love,</p>
+                    <p id="cardSender" class="font-cute text-xl sm:text-2xl text-pink-600 mt-1">
+                        From, jzluvluv (jeyzan) 💕
+                    </p>
+                </div>
+            </div>
+
+            <!-- Extra Interactive Surprises Menu -->
+            <div class="w-full mt-8">
+                <h3 class="text-center font-extrabold text-gray-700 text-sm uppercase tracking-wider mb-4">
+                    🎁 Kejutan Tambahan Untukmu 🎁
+                </h3>
+                
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <!-- Gift Modal Button -->
+                    <button onclick="openGiftModal()" class="bg-gradient-to-br from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white font-bold p-3.5 rounded-2xl shadow-md hover:shadow-xl transition-all transform hover:-translate-y-1 active:scale-95 flex flex-col items-center justify-center text-center gap-1.5 group">
+                        <i class="fas fa-gift text-2xl group-hover:rotate-12 transition-transform"></i>
+                        <span class="text-xs sm:text-sm">Open Gift</span>
+                    </button>
+
+                    <!-- Play Music Button -->
+                    <button id="cardMusicBtn" onclick="toggleMusic()" class="bg-gradient-to-br from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-bold p-3.5 rounded-2xl shadow-md hover:shadow-xl transition-all transform hover:-translate-y-1 active:scale-95 flex flex-col items-center justify-center text-center gap-1.5 group">
+                        <i class="fas fa-music text-2xl group-hover:scale-110 transition-transform"></i>
+                        <span class="text-xs sm:text-sm">Play Music</span>
+                    </button>
+
+                    <!-- Secret Rhyme Button -->
+                    <button onclick="openSecretModal()" class="bg-gradient-to-br from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white font-bold p-3.5 rounded-2xl shadow-md hover:shadow-xl transition-all transform hover:-translate-y-1 active:scale-95 flex flex-col items-center justify-center text-center gap-1.5 group">
+                        <i class="fas fa-user-secret text-2xl group-hover:scale-110 transition-transform"></i>
+                        <span class="text-xs sm:text-sm">One More Surprise</span>
+                    </button>
+
+                    <!-- Replay Button -->
+                    <button onclick="restartExperience()" class="bg-gradient-to-br from-emerald-400 to-teal-600 hover:from-emerald-500 hover:to-teal-700 text-white font-bold p-3.5 rounded-2xl shadow-md hover:shadow-xl transition-all transform hover:-translate-y-1 active:scale-95 flex flex-col items-center justify-center text-center gap-1.5 group">
+                        <i class="fas fa-rotate-right text-2xl group-hover:rotate-180 transition-transform duration-500"></i>
+                        <span class="text-xs sm:text-sm">Replay</span>
+                    </button>
+                </div>
+
+                <!-- Share CTA Banner -->
+                <div class="mt-6 flex justify-center gap-3">
+                    <button onclick="openShareModal()" class="w-full bg-white hover:bg-pink-50 text-pink-600 font-extrabold border-2 border-pink-300 py-3 rounded-2xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 active:scale-98">
+                        <i class="fas fa-share-nodes text-lg"></i>
+                        <span>Bagikan Kartu Ini (Share)</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="text-center py-4 text-xs text-gray-400 relative z-10">
+        Made with ❤️ for Birthday Surprise • Interactive Digital Card
+    </footer>
+
+    <!-- MODAL 1: DIGITAL GIFT BOX -->
+    <div id="giftModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 text-center relative shadow-2xl transform transition-all scale-95 opacity-0 duration-300" id="giftModalContent">
+            <button onclick="closeGiftModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                <i class="fas fa-xmark"></i>
+            </button>
+
+            <!-- Gift Graphic Interactive Box -->
+            <div id="giftBoxContainer" class="my-6 cursor-pointer" onclick="openGiftBox()">
+                <div class="relative w-28 h-28 mx-auto flex flex-col items-center justify-end">
+                    <!-- Lid -->
+                    <div id="giftLid" class="gift-box-lid absolute top-0 w-32 h-8 bg-rose-500 rounded-lg shadow-md z-10 flex items-center justify-center">
+                        <div class="w-6 h-full bg-amber-300"></div>
+                    </div>
+                    <!-- Box Body -->
+                    <div class="w-28 h-20 bg-rose-400 rounded-b-xl shadow-lg flex items-center justify-center relative overflow-hidden">
+                        <div class="w-6 h-full bg-amber-300"></div>
+                        <i class="fas fa-sparkles text-white text-xl absolute animate-pulse"></i>
+                    </div>
+                </div>
+                <p id="giftInstruction" class="text-xs text-pink-500 font-bold mt-3 animate-bounce">Ketuk Kotak Hadiah untuk Membuka! 🎁</p>
+            </div>
+
+            <!-- Revealed Content (Voucher) -->
+            <div id="giftReward" class="hidden animate-fade-in">
+                <div class="bg-gradient-to-r from-amber-100 to-yellow-100 border-2 border-dashed border-amber-400 rounded-2xl p-4 my-4 shadow-inner relative overflow-hidden">
+                    <span class="absolute -right-4 -bottom-4 text-6xl opacity-20">🎟️</span>
+                    <span class="text-xs font-bold uppercase tracking-wider text-amber-700 bg-amber-200 px-2.5 py-0.5 rounded-full">Voucher Spesial</span>
+                    <h4 id="giftTextTitle" class="font-cute text-xl text-amber-900 mt-2 font-bold">Voucher Peluk Abi Sepuasnya! 🤗</h4>
+                    <p id="giftTextDetail" class="text-sm text-amber-800 mt-1 font-semibold">samaa nantii tunggu ajahh 😈</p>
+                </div>
+                <button onclick="triggerConfetti()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all">
+                    Claim Hug! ✨
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: SECRET SURPRISE (RHYME) -->
+    <div id="secretModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-gradient-to-br from-pink-50 to-purple-50 rounded-3xl max-w-sm w-full p-6 text-center relative shadow-2xl border-2 border-pink-200">
+            <button onclick="closeSecretModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm">
+                <i class="fas fa-xmark"></i>
+            </button>
+
+            <div class="w-16 h-16 bg-pink-100 text-pink-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">
+                🤫
+            </div>
+
+            <h3 class="font-cute text-2xl text-pink-600 font-bold mb-2">Pesan Rahasia!</h3>
+            
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-pink-100 my-4">
+                <p id="secretText" class="font-handwriting text-2xl text-gray-800 leading-relaxed">
+                    ikan hiu makan berang berang,<br>
+                    <strong class="text-pink-600 font-bold">i love u sayang! ❤️</strong>
+                </p>
+            </div>
+
+            <button onclick="closeSecretModal()" class="bg-pink-500 hover:bg-pink-600 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition-all shadow-md">
+                Aww, Sweet! 💕
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL 3: EDITOR / CREATOR MODAL -->
+    <div id="editorModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <!-- Modal Header -->
+            <div class="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between bg-pink-50">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-pen-to-square text-pink-500 text-xl"></i>
+                    <h3 class="font-bold text-gray-800 text-lg">Pembuat / Editor Kartu</h3>
+                </div>
+                <button onclick="toggleEditorModal()" class="text-gray-400 hover:text-gray-600 w-8 h-8 rounded-full bg-white flex items-center justify-center">
+                    <i class="fas fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Modal Form Body -->
+            <div class="p-4 sm:p-6 overflow-y-auto space-y-4 custom-scrollbar text-left">
+                <!-- Theme Selector -->
+                <div>
+                    <label class="block text-xs font-bold uppercase text-gray-500 mb-2">Pilih Tema Warna</label>
+                    <div class="grid grid-cols-5 gap-2" id="themeSelector">
+                        <button onclick="selectTheme('pink')" class="h-10 rounded-xl bg-pink-200 border-2 border-pink-400 flex items-center justify-center text-pink-700 font-bold text-xs">Pink</button>
+                        <button onclick="selectTheme('blue')" class="h-10 rounded-xl bg-blue-200 border-2 border-transparent flex items-center justify-center text-blue-700 font-bold text-xs">Blue</button>
+                        <button onclick="selectTheme('purple')" class="h-10 rounded-xl bg-purple-200 border-2 border-transparent flex items-center justify-center text-purple-700 font-bold text-xs">Purple</button>
+                        <button onclick="selectTheme('peach')" class="h-10 rounded-xl bg-amber-200 border-2 border-transparent flex items-center justify-center text-amber-700 font-bold text-xs">Peach</button>
+                        <button onclick="selectTheme('dark')" class="h-10 rounded-xl bg-gray-800 border-2 border-transparent flex items-center justify-center text-amber-300 font-bold text-xs">Dark</button>
+                    </div>
+                </div>
+
+                <!-- Recipient Name -->
+                <div>
+                    <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Nama Penerima</label>
+                    <input type="text" id="editRecipient" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none text-sm font-semibold" placeholder="Nama pasangan/teman">
+                </div>
+
+                <!-- Main Letter Text -->
+                <div>
+                    <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Isi Pesan Surat</label>
+                    <textarea id="editMessage" rows="4" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none text-sm font-semibold" placeholder="Tulis ucapan ulang tahun..."></textarea>
+                </div>
+
+                <!-- Sender Name -->
+                <div>
+                    <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Nama Pengirim</label>
+                    <input type="text" id="editSender" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none text-sm font-semibold" placeholder="Nama kamu">
+                </div>
+
+                <!-- Gift Reward Customization -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Judul Hadiah Digital</label>
+                        <input type="text" id="editGiftTitle" class="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs font-semibold" placeholder="cth: Voucher Peluk">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Detail Hadiah</label>
+                        <input type="text" id="editGiftDetail" class="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs font-semibold" placeholder="cth: Sepuasnya">
+                    </div>
+                </div>
+
+                <!-- Secret Message -->
+                <div>
+                    <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Pesan Rahasia / Pantun</label>
+                    <input type="text" id="editSecret" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold" placeholder="Pesan rahasia...">
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-4 border-t border-gray-100 bg-gray-50 flex gap-2">
+                <button onclick="saveCardData()" class="flex-1 bg-pink-500 hover:bg-pink-600 text-white font-bold py-2.5 rounded-xl text-sm transition-all shadow-md">
+                    Simpan Perubahan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 4: SHARE OPTIONS -->
+    <div id="shareModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 text-center relative shadow-2xl">
+            <button onclick="closeShareModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                <i class="fas fa-xmark"></i>
+            </button>
+
+            <div class="w-12 h-12 bg-pink-100 text-pink-500 rounded-full flex items-center justify-center mx-auto mb-3 text-xl">
+                <i class="fas fa-share-nodes"></i>
+            </div>
+
+            <h3 class="font-bold text-gray-800 text-lg mb-1">Bagikan Kartu Ulang Tahun</h3>
+            <p class="text-xs text-gray-500 mb-4">Penerima dapat membuka kartu interaktif ini langsung di browser HP mereka tanpa perlu install aplikasi!</p>
+
+            <div class="space-y-3 text-left">
+                <!-- Copy URL Option -->
+                <div class="p-3 bg-pink-50 rounded-2xl border border-pink-200">
+                    <label class="block text-xs font-bold text-pink-700 mb-1">Tautan Kartu Interaktif</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="shareUrlInput" readonly class="w-full bg-white px-3 py-2 rounded-xl border border-pink-200 text-xs text-gray-600 outline-none">
+                        <button onclick="copyShareUrl()" class="bg-pink-500 hover:bg-pink-600 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center gap-1 shrink-0">
+                            <i class="fas fa-copy"></i> Salin
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Alternative Downloads -->
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="downloadCardImage()" class="p-3 bg-gray-50 hover:bg-pink-50 border border-gray-200 rounded-2xl text-left transition-all group">
+                        <i class="fas fa-image text-pink-500 text-lg mb-1 group-hover:scale-110 transition-transform"></i>
+                        <p class="text-xs font-bold text-gray-700">Unduh Gambar</p>
+                        <p class="text-[10px] text-gray-400">Simpan kartu sebagai PNG</p>
+                    </button>
+                    <button onclick="downloadHTMLFile()" class="p-3 bg-gray-50 hover:bg-pink-50 border border-gray-200 rounded-2xl text-left transition-all group">
+                        <i class="fas fa-file-code text-purple-500 text-lg mb-1 group-hover:scale-110 transition-transform"></i>
+                        <p class="text-xs font-bold text-gray-700">Unduh HTML</p>
+                        <p class="text-[10px] text-gray-400">File mandiri offline</p>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900/90 text-white text-xs font-bold px-5 py-3 rounded-full shadow-2xl z-50 transition-all opacity-0 pointer-events-none flex items-center gap-2">
+        <i class="fas fa-circle-check text-green-400"></i>
+        <span id="toastMessage">Tautan berhasil disalin!</span>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // --- DEFAULT CARD DATA ---
+        let cardData = {
+            theme: 'pink',
+            recipient: "GEJAAN MY CEWE AKUUU",
+            message: "selamat ulang tahun yaaa, semoga di hari ulang tahun kamu ini penuh kebahagiaan, kamu makin sehat, panjang umur, lebih bisaa control mood nyaa, masi jadi cewenya abi, dan hal-hal baik pada dateng ke kamuu. semogaaa semua impian dan cita cita kamu perlahan menjadi kenyataan dan kamu selalu dikelilingi orang-orang yang menyayangimu.",
+            sender: "jzluvluv (jeyzan)",
+            giftTitle: "Voucher Peluk Abi Sepuasnya! 🤗",
+            giftDetail: "samaa nantii tunggu ajahh 😈",
+            secretText: "ikan hiu makan berang berang,\ni love u sayang! ❤️"
+        };
+
+        // --- AUDIO SYNTHESIZER (Web Audio API) ---
+        let audioCtx = null;
+        let isPlayingMusic = false;
+        let musicInterval = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        // Happy Birthday Synth Melody Notes
+        const melody = [
+            { note: 261.63, duration: 0.3 }, { note: 261.63, duration: 0.3 }, { note: 293.66, duration: 0.6 }, { note: 261.63, duration: 0.6 }, { note: 349.23, duration: 0.6 }, { note: 329.63, duration: 1.0 },
+            { note: 261.63, duration: 0.3 }, { note: 261.63, duration: 0.3 }, { note: 293.66, duration: 0.6 }, { note: 261.63, duration: 0.6 }, { note: 392.00, duration: 0.6 }, { note: 349.23, duration: 1.0 },
+            { note: 261.63, duration: 0.3 }, { note: 261.63, duration: 0.3 }, { note: 523.25, duration: 0.6 }, { note: 440.00, duration: 0.6 }, { note: 349.23, duration: 0.6 }, { note: 329.63, duration: 0.6 }, { note: 293.66, duration: 0.8 },
+            { note: 466.16, duration: 0.3 }, { note: 466.16, duration: 0.3 }, { note: 440.00, duration: 0.6 }, { note: 349.23, duration: 0.6 }, { note: 392.00, duration: 0.6 }, { note: 349.23, duration: 1.2 }
+        ];
+
+        function playNote(freq, duration) {
+            if (!audioCtx || audioCtx.state === 'suspended') return;
+            try {
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch(e) {}
+        }
+
+        function toggleMusic() {
+            initAudio();
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            isPlayingMusic = !isPlayingMusic;
+            const musicIcon = document.getElementById('musicIcon');
+            const cardMusicBtn = document.getElementById('cardMusicBtn');
+
+            if (isPlayingMusic) {
+                musicIcon.className = "fas fa-volume-high text-lg animate-pulse text-pink-600";
+                if(cardMusicBtn) cardMusicBtn.classList.add('ring-4', 'ring-purple-300');
+                
+                let noteIdx = 0;
+                playNextMelodyNote();
+                function playNextMelodyNote() {
+                    if (!isPlayingMusic) return;
+                    let current = melody[noteIdx];
+                    playNote(current.note, current.duration);
+                    noteIdx = (noteIdx + 1) % melody.length;
+                    musicInterval = setTimeout(playNextMelodyNote, current.duration * 1000 + 100);
+                }
+                showToast("🎵 Musik Ulang Tahun Diputar");
+            } else {
+                musicIcon.className = "fas fa-music text-lg";
+                if(cardMusicBtn) cardMusicBtn.classList.remove('ring-4', 'ring-purple-300');
+                clearTimeout(musicInterval);
+                showToast("🔇 Musik Dihentikan");
+            }
+        }
+
+        // --- APP INITIALIZATION & DECODING ---
+        window.addEventListener('DOMContentLoaded', () => {
+            loadURLData();
+            createParticles();
+            applyCardData();
+        });
+
+        // Load encoded card data from URL hash if available
+        function loadURLData() {
+            try {
+                const hash = window.location.hash.substring(1);
+                if (hash) {
+                    const decoded = JSON.parse(atob(hash));
+                    cardData = { ...cardData, ...decoded };
+                } else {
+                    const local = localStorage.getItem('birthday_card_draft');
+                    if (local) cardData = { ...cardData, ...JSON.parse(local) };
+                }
+            } catch(e) {
+                console.log("Using default card values");
+            }
+        }
+
+        // Apply Card Data into UI Elements
+        function applyCardData() {
+            document.getElementById('cardHeader').innerText = `Happy Birthday, ${cardData.recipient}!`;
+            document.getElementById('cardSender').innerText = `From, ${cardData.sender}`;
+            document.getElementById('miniLetterTitle').innerText = `For ${cardData.recipient}`;
+            document.getElementById('giftTextTitle').innerText = cardData.giftTitle;
+            document.getElementById('giftTextDetail').innerText = cardData.giftDetail;
+            document.getElementById('secretText').innerHTML = cardData.secretText.replace(/\n/g, '<br>');
+
+            applyTheme(cardData.theme);
+        }
+
+        // Themes Handler
+        function applyTheme(themeName) {
+            const body = document.getElementById('mainBody');
+            cardData.theme = themeName;
+
+            body.className = "min-h-screen flex flex-col justify-between relative selection:bg-pink-200 transition-colors duration-500 ";
+
+            if (themeName === 'pink') {
+                body.classList.add('bg-pink-50', 'text-gray-800');
+            } else if (themeName === 'blue') {
+                body.classList.add('bg-blue-50', 'text-gray-800');
+            } else if (themeName === 'purple') {
+                body.classList.add('bg-purple-50', 'text-gray-800');
+            } else if (themeName === 'peach') {
+                body.classList.add('bg-orange-50', 'text-gray-800');
+            } else if (themeName === 'dark') {
+                body.classList.add('bg-gray-900', 'text-gray-100');
+            }
+        }
+
+        // Floating Background Sparkles/Particles Generator
+        function createParticles() {
+            const container = document.getElementById('bgParticlesContainer');
+            container.innerHTML = '';
+            const items = ['✨', '💖', '🌸', '⭐', '🎈'];
+            
+            for (let i = 0; i < 20; i++) {
+                const el = document.createElement('div');
+                el.className = 'bg-particle';
+                el.innerText = items[Math.floor(Math.random() * items.length)];
+                el.style.left = Math.random() * 100 + 'vw';
+                el.style.top = Math.random() * 100 + 'vh';
+                el.style.fontSize = (14 + Math.random() * 20) + 'px';
+                el.style.animationDuration = (4 + Math.random() * 6) + 's';
+                el.style.animationDelay = (Math.random() * 2) + 's';
+                el.style.opacity = 0.4 + Math.random() * 0.5;
+                container.appendChild(el);
+            }
+        }
+
+        // --- NAVIGATION & ANIMATIONS ---
+
+        function goToEnvelopeScreen() {
+            initAudio();
+            document.getElementById('landingScreen').classList.add('hidden');
+            const envScreen = document.getElementById('envelopeScreen');
+            envScreen.classList.remove('hidden');
+            envScreen.classList.add('flex');
+            triggerConfetti();
+        }
+
+        let isEnvelopeOpened = false;
+        function openEnvelope() {
+            if (isEnvelopeOpened) return;
+            isEnvelopeOpened = true;
+
+            const envelope = document.getElementById('envelopeObj');
+            const letter = document.getElementById('miniLetterObj');
+            const tapBtn = document.getElementById('tapOpenBtn');
+
+            envelope.classList.add('open');
+            tapBtn.style.opacity = '0';
+
+            // Confetti burst on flap open
+            setTimeout(() => {
+                triggerConfetti();
+            }, 300);
+
+            // Slide Up Letter
+            setTimeout(() => {
+                letter.classList.add('extracted');
+            }, 600);
+
+            // Transition to Full Letter Screen
+            setTimeout(() => {
+                document.getElementById('envelopeScreen').classList.add('hidden');
+                document.getElementById('envelopeScreen').classList.remove('flex');
+                
+                const letterScreen = document.getElementById('letterScreen');
+                letterScreen.classList.remove('hidden');
+                letterScreen.classList.add('flex');
+
+                startTypewriter();
+                triggerConfetti();
+            }, 1600);
+        }
+
+        // Typewriter Effect for Main Card Message
+        let typewriterTimeout = null;
+        function startTypewriter() {
+            const msgEl = document.getElementById('cardMessage');
+            msgEl.innerHTML = '';
+            const text = cardData.message;
+            let i = 0;
+
+            clearTimeout(typewriterTimeout);
+
+            function type() {
+                if (i < text.length) {
+                    msgEl.innerHTML += text.charAt(i) === '\n' ? '<br>' : text.charAt(i);
+                    i++;
+                    typewriterTimeout = setTimeout(type, 35);
+                }
+            }
+            type();
+        }
+
+        function restartExperience() {
+            isEnvelopeOpened = false;
+            document.getElementById('envelopeObj').classList.remove('open');
+            document.getElementById('miniLetterObj').classList.remove('extracted');
+            document.getElementById('tapOpenBtn').style.opacity = '1';
+
+            document.getElementById('letterScreen').classList.add('hidden');
+            document.getElementById('letterScreen').classList.remove('flex');
+
+            document.getElementById('landingScreen').classList.remove('hidden');
+            showToast("✨ Kejutan diulang dari awal!");
+        }
+
+        // --- MODALS & SURPRISES LOGIC ---
+
+        function openGiftModal() {
+            const modal = document.getElementById('giftModal');
+            const content = document.getElementById('giftModalContent');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closeGiftModal() {
+            const modal = document.getElementById('giftModal');
+            const content = document.getElementById('giftModalContent');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 200);
+        }
+
+        function openGiftBox() {
+            const container = document.getElementById('giftBoxContainer');
+            const reward = document.getElementById('giftReward');
+            const instruction = document.getElementById('giftInstruction');
+
+            container.classList.add('gift-opened');
+            instruction.classList.add('hidden');
+
+            setTimeout(() => {
+                reward.classList.remove('hidden');
+                triggerConfetti();
+            }, 400);
+        }
+
+        function openSecretModal() {
+            document.getElementById('secretModal').classList.remove('hidden');
+            triggerConfetti();
+        }
+
+        function closeSecretModal() {
+            document.getElementById('secretModal').classList.add('hidden');
+        }
+
+        // --- EDITOR / CREATOR MODAL ---
+
+        function toggleEditorModal() {
+            const modal = document.getElementById('editorModal');
+            if (modal.classList.contains('hidden')) {
+                // Populate inputs
+                document.getElementById('editRecipient').value = cardData.recipient;
+                document.getElementById('editMessage').value = cardData.message;
+                document.getElementById('editSender').value = cardData.sender;
+                document.getElementById('editGiftTitle').value = cardData.giftTitle;
+                document.getElementById('editGiftDetail').value = cardData.giftDetail;
+                document.getElementById('editSecret').value = cardData.secretText;
+                
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function selectTheme(theme) {
+            applyTheme(theme);
+            showToast(`Tema ${theme.toUpperCase()} dipilih`);
+        }
+
+        function saveCardData() {
+            cardData.recipient = document.getElementById('editRecipient').value || "GEJAAN MY CEWE AKUUU";
+            cardData.message = document.getElementById('editMessage').value || "Selamat ulang tahun!";
+            cardData.sender = document.getElementById('editSender').value || "Pengirim";
+            cardData.giftTitle = document.getElementById('editGiftTitle').value || "Voucher Hadiah";
+            cardData.giftDetail = document.getElementById('editGiftDetail').value || "Detail";
+            cardData.secretText = document.getElementById('editSecret').value || "I Love You!";
+
+            localStorage.setItem('birthday_card_draft', JSON.stringify(cardData));
+            applyCardData();
+            toggleEditorModal();
+
+            if (!document.getElementById('letterScreen').classList.contains('hidden')) {
+                startTypewriter();
+            }
+
+            showToast("Perubahan kartu berhasil disimpan! 🎉");
+        }
+
+        // --- SHARING & EXPORT ---
+
+        function openShareModal() {
+            // Encode data into URL Hash
+            const jsonStr = JSON.stringify(cardData);
+            const encoded = btoa(jsonStr);
+            const fullUrl = `${window.location.origin}${window.location.pathname}#${encoded}`;
+
+            document.getElementById('shareUrlInput').value = fullUrl;
+            document.getElementById('shareModal').classList.remove('hidden');
+        }
+
+        function closeShareModal() {
+            document.getElementById('shareModal').classList.add('hidden');
+        }
+
+        function copyShareUrl() {
+            const input = document.getElementById('shareUrlInput');
+            input.select();
+            input.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+            showToast("📋 Tautan berhasil disalin ke clipboard!");
+        }
+
+        function downloadCardImage() {
+            showToast("📸 Memproses gambar kartu...");
+            const cardEl = document.getElementById('birthdayCard');
+            html2canvas(cardEl, { scale: 2 }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `Birthday-Card-${cardData.recipient}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+                showToast("✅ Gambar berhasil diunduh!");
+            }).catch(() => {
+                showToast("❌ Gagal mengunduh gambar");
+            });
+        }
+
+        function downloadHTMLFile() {
+            const htmlContent = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `Birthday-Surprise-${cardData.recipient}.html`;
+            a.click();
+            showToast("📄 File HTML mandiri diunduh!");
+        }
+
+        // --- HELPER UTILITIES ---
+
+        function triggerConfetti() {
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 80,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMessage');
+            toastMsg.innerText = message;
+            
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            toast.classList.add('opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 2500);
+        }
+    </script>
+</body>
+</html>
